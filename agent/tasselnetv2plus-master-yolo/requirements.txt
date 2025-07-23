@@ -1,0 +1,13 @@
+
+opencv-python
+numpy
+PIL
+matplotlib
+scipy
+skimage
+sklearn
+math
+json
+pandas
+h5py
+xml

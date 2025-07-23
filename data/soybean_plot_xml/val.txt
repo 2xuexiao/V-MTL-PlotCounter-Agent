@@ -1,0 +1,12 @@
+\val\images\27.jpg	\val\labels\27.xml
+\val\images\30.jpg	\val\labels\30.xml
+\val\images\31.jpg	\val\labels\31.xml
+\val\images\32.jpg	\val\labels\32.xml
+\val\images\34.jpg	\val\labels\34.xml
+\val\images\36.jpg	\val\labels\36.xml
+\val\images\37.jpg	\val\labels\37.xml
+\val\images\38.jpg	\val\labels\38.xml
+\val\images\40.jpg	\val\labels\40.xml
+\val\images\41.jpg	\val\labels\41.xml
+\val\images\42.jpg	\val\labels\42.xml
+\val\images\43.jpg	\val\labels\43.xml

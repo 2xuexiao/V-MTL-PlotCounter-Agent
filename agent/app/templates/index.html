@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作物计数智能体</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <!-- Add styles for preview button and preview popup -->
+    <style>
+        /* Image preview related styles */
+        .view-full-image-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s;
+            z-index: 10;
+        }
+
+        .view-full-image-btn:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        /* Image viewer styles */
+        .image-viewer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .image-viewer-container {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .image-viewer-content {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        #image-viewer-img {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border: 2px solid white;
+            transition: transform 0.3s ease;
+        }
+
+        .image-viewer-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .image-viewer-controls {
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .image-control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .image-control-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Ensure image container has relative positioning for proper button placement */
+        #image-preview-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation bar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <i class="fas fa-seedling"></i>
+            <span id="nav-title">作物计数智能体</span>
+        </a>
+        <div class="navbar-actions">
+            <button id="help-button" class="navbar-button">
+                <i class="fas fa-question-circle"></i>
+                <span id="help-text">帮助</span>
+            </button>
+            <div class="language-dropdown">
+                <button id="language-button" class="navbar-button">
+                    <i class="fas fa-globe"></i>
+                    <span id="language-text">语言</span>
+                </button>
+                <div class="language-options">
+                    <div class="language-option" data-lang="zh">
+                        <img src="https://flagcdn.com/w20/cn.png" alt="Chinese" class="language-flag">
+                        <span>中文</span>
+                    </div>
+                    <div class="language-option active" data-lang="en">
+                        <img src="https://flagcdn.com/w20/us.png" alt="English" class="language-flag">
+                        <span>English</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Left panel -->
+        <div class="left-panel">
+            <!-- Upload section -->
+            <div id="upload-section">
+                <div class="upload-container" id="upload-zone">
+                    <div class="upload-prompt">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <p>点击或拖拽上传图片/视频</p>
+                        <p class="supported-formats">支持格式: JPG, PNG, MP4</p>
+                    </div>
+                    <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.mp4" hidden>
+                </div>
+            </div>
+
+            <!-- Results display section -->
+            <div id="results-section" style="display: none;">
+                <h3 class="section-title">计数结果密度图</h3>
+
+                <!-- Density map - Add image preview functionality -->
+                <div class="density-map">
+                    <div id="image-preview-container">
+                        <img id="result-image" src="" alt="计数结果密度图" class="preview-enabled">
+                        <button class="view-full-image-btn">点击查看大图</button>
+                    </div>
+                </div>
+
+                <!-- Counting results -->
+                <div class="count-result">
+                    <div class="count-card">
+                        <div class="count-icon">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <div class="count-info">
+                            <span class="count-label">检测到的作物数量</span>
+                            <span id="total-count" class="count-number">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="button-group">
+                    <button id="upload-new" class="secondary-button" onclick="resetUpload()">
+                        <i class="fas fa-upload"></i> 上传新图片
+                    </button>
+                    <button id="generate-prompt" class="primary-button">
+                        <i class="fas fa-magic"></i> 生成分析提示词
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right panel -->
+        <div class="right-panel">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3><i class="fas fa-robot"></i> AI 分析助手</h3>
+                </div>
+
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message system-message">
+                        <div class="message-content">
+                            您好！我是AI分析助手。请上传图片，我会协助您分析作物生长情况。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="input-container">
+                        <textarea id="chat-input"
+                                placeholder="输入您的问题，或点击"生成分析提示词"按钮自动生成分析请求..."
+                                rows="3"></textarea>
+                        <button id="send-message" class="send-button">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image preview modal window -->
+    <div id="image-viewer-overlay" class="image-viewer-overlay">
+        <div class="image-viewer-container">
+            <button id="image-viewer-close" class="image-viewer-close">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="image-viewer-content">
+                <img id="image-viewer-img" src="" alt="密度图预览">
+            </div>
+            <div class="image-viewer-controls">
+                <button id="zoom-in" class="image-control-btn">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <button id="zoom-out" class="image-control-btn">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button id="reset-zoom" class="image-control-btn">
+                    <i class="fas fa-sync"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help modal window -->
+    <div id="help-overlay" class="help-overlay">
+        <div class="help-container">
+            <div class="help-header">
+                <h2 id="help-title">系统使用帮助</h2>
+                <button id="help-close" class="help-close">&times;</button>
+            </div>
+            <div class="help-content">
+                <div class="help-section">
+                    <h3 id="help-section-1">系统概述</h3>
+                    <p id="help-overview">作物计数分析系统是一个帮助农业人员对上传的农田图像进行分析的工具。本系统可以识别图像中的作物，计算作物数量，并提供详细的生长分析和建议。</p>
+                </div>
+
+                <div class="help-section">
+                    <h3 id="help-section-2">使用流程</h3>
+                    <ol>
+                        <li id="help-step-1">在左侧上传区域点击或拖放图片/视频文件（支持JPG、PNG、MP4格式）</li>
+                        <li id="help-step-2">系统自动处理图像并在左侧显示计数结果密度图和作物数量</li>
+                        <li id="help-step-3">点击密度图可以查看大图并进行放大缩小操作</li>
+                        <li id="help-step-4">点击"生成分析提示词"按钮，选择作物信息和分析类型</li>
+                        <li id="help-step-5">在弹出的选项中选择相关农业参数，如作物类型、土壤类型等</li>
+                        <li id="help-step-6">系统生成针对您上传图像的智能分析，并在右侧聊天框显示</li>
+                        <li id="help-step-7">您可以继续在聊天框提问，获取更详细的分析和建议</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h3 id="help-section-3">注意事项</h3>
+                    <p id="help-note-1">为了获得最佳分析结果，请上传清晰的农田图像，尽量避免过暗、过亮或模糊的图像</p>
+                    <p id="help-note-2">系统分析结果仅供参考，最终农业决策应结合实际情况</p>
+                    <p id="help-note-3">如有任何问题或建议，请联系系统管理员</p>
+                </div>
+            </div>
+            <div class="help-footer">
+                <button id="help-got-it" class="help-button">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal window -->
+    <div id="modal-overlay" class="modal-overlay" style="display: none;">
+        <div id="modal-options-container" class="options-container">
+            <h3 class="options-title">选择作物信息和分析类型</h3>
+
+            <!-- Template selection -->
+            <div class="template-selection">
+                <label>选择分析类型 (可多选):</label>
+                <div id="modal-template-options" class="template-options">
+                    <!-- Will be dynamically filled by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Options grid -->
+            <div class="options-grid">
+                <div class="option-group">
+                    <label class="option-label">作物类型:</label>
+                    <select id="modal-crop-type" class="option-select">
+                        <!-- Will be dynamically filled by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label class="option-label">土壤类型:</label>
+                    <select id="modal-soil-type" class="option-select">
+                        <!-- Will be dynamically filled by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label class="option-label">灌溉方式:</label>
+                    <select id="modal-irrigation" class="option-select">
+                        <!-- Will be dynamically filled by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label class="option-label">生长阶段:</label>
+                    <select id="modal-growth-stage" class="option-select">
+                        <!-- Will be dynamically filled by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label class="option-label">季节:</label>
+                    <select id="modal-season" class="option-select">
+                        <!-- Will be dynamically filled by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label class="option-label">气候条件:</label>
+                    <select id="modal-climate" class="option-select">
+                        <!-- Will be dynamically filled by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label class="option-label">种植方式:</label>
+                    <select id="modal-planting-method" class="option-select">
+                        <!-- Will be dynamically filled by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label class="option-label">田地大小:</label>
+                    <select id="modal-field-size" class="option-select">
+                        <!-- Will be dynamically filled by JavaScript -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="options-buttons">
+                <button id="cancel-options" class="option-button cancel-button">取消</button>
+                <button id="generate-from-options" class="option-button generate-button">生成提示词</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
